@@ -1,83 +1,80 @@
-import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import mean_squared_error
 
-st.set_page_config(page_title="Stock Prediction App", layout="centered")
+# 📌 Step 1: Load Data
+data = pd.read_csv("data.csv")
 
-st.title("📈 Stock Prediction App (Clean & Fixed)")
-st.write("Upload your CSV file and predict stock values")
+print("Data Preview:\n", data.head())
+print("\nColumns:\n", data.columns)
 
-# ---------------------------
-# 1. Upload CSV
-# ---------------------------
-file = st.file_uploader("Upload CSV File", type=["csv"])
+# 📌 Step 2: Remove Date column (if exists)
+for col in data.columns:
+    if 'date' in col.lower():
+        data = data.drop(col, axis=1)
 
-if file:
+# 📌 Step 3: Auto detect target column (price/close)
+target_column = None
 
-    df = pd.read_csv(file)
-    st.subheader("📊 Raw Data")
-    st.write(df.head())
+for col in data.columns:
+    if 'close' in col.lower() or 'price' in col.lower():
+        target_column = col
+        break
 
-    # ---------------------------
-    # 2. CLEAN DATA
-    # ---------------------------
+# ❌ agar target na mile
+if target_column is None:
+    raise Exception("❌ No price/close column found! Apni CSV check karo")
 
-    st.subheader("🧹 Data Preprocessing")
+print("\n✅ Using target column:", target_column)
 
-    # Fill missing values
-    df = df.dropna()
+data = data.select_dtypes(include=[np.number])
+data = data.dropna()
 
-    # Convert categorical columns automatically
-    label_encoders = {}
+# 📌 Step 4: Features & Target
+X = data.drop([target_column], axis=1)
+y = data[target_column]
 
-    for col in df.columns:
-        if df[col].dtype == "object":
-            le = LabelEncoder()
-            df[col] = le.fit_transform(df[col])
-            label_encoders[col] = le
+# 📌 Step 5: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-    st.write("✅ Data after encoding:")
-    st.write(df.head())
+# 📌 Step 6: Model (Advanced)
+model = RandomForestRegressor(n_estimators=100)
+model.fit(X_train, y_train)
 
-    # ---------------------------
-    # 3. Select Target
-    # ---------------------------
-    target_column = st.selectbox("Select Target Column", df.columns)
+# 📌 Step 7: Prediction
+y_pred = model.predict(X_test)
 
-    X = df.drop(target_column, axis=1)
-    y = df[target_column]
+# 📌 Step 8: Accuracy
+mse = mean_squared_error(y_test, y_pred)
+print("\n📊 Mean Squared Error:", mse)
 
-    # ---------------------------
-    # 4. Train Model
-    # ---------------------------
-    if st.button("Train Model"):
+# 📌 Step 9: Graph
+plt.figure(figsize=(10,5))
+plt.plot(y_test.values, label="Actual")
+plt.plot(y_pred, label="Predicted")
+plt.legend()
+plt.title("Stock Price Prediction")
+plt.show()
+import streamlit as st
+import pickle
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
+# 🔥 UI (ye missing tha)
+st.title("Stock Price Prediction App 🚀")
+st.write("Model is running successfully")
 
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
-        model.fit(X_train, y_train)
+# Model load
+model = pickle.load(open("model.pkl", "rb"))
 
-        score = model.score(X_test, y_test)
+# Input
+value = st.number_input("Enter turnover value")
 
-        st.success(f"Model Trained Successfully 🎯 Accuracy Score: {score:.2f}")
-
-        # ---------------------------
-        # 5. Prediction Section
-        # ---------------------------
-        st.subheader("🔮 Make Prediction")
-
-        input_data = []
-
-        for col in X.columns:
-            val = st.number_input(f"Enter value for {col}", value=0.0)
-            input_data.append(val)
-
-        if st.button("Predict"):
-            prediction = model.predict([input_data])
-            st.success(f"📊 Predicted Value: {prediction[0]}")
+# Button
+if st.button("Predict"):
+    result = model.predict([[value]])
+    st.success(f"Prediction: {result[0]}")
