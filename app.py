@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 
 import streamlit as st
 import pandas as pd
@@ -82,7 +80,6 @@ if file:
         if st.button("Predict"):
             prediction = model.predict([input_data])
             st.success(f"📊 Predicted Value: {prediction[0]}")
->>>>>>> 0cd7246 (add model file)
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -162,8 +159,5 @@ value = st.number_input("Enter turnover value")
 # Button
 if st.button("Predict"):
     result = model.predict([[value]])
-<<<<<<< HEAD
     st.success(f"Prediction: {result[0]}")
-=======
     st.success(f"Prediction: {result[0]}")
->>>>>>> 0cd7246 (add model file)
